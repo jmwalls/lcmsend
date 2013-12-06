@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import sys
+import time
 
 import pygtk
 pygtk.require ('2.0')
@@ -8,32 +9,75 @@ import gtk
 import lcm
 from messages import *
 
+def timestamp ():
+    return int (time.time ()*1e6)
+
+
 class Msg_dialog (gtk.Dialog):
-    def __init__ (self, module, msg):
-        super (Msg_dialog, self).__init__ ('%s---%s' % (module, msg))
+    """
+    dialog object handles specifying and publishing the message
+
+    Parameters
+    -----------
+    """
+    def __init__ (self, lc, module, msg):
+        super (Msg_dialog, self).__init__ (msg)
+        self.label = msg
+
+        self.lcm = lc
 
         modtype = getattr (lcmtypes, module)
         msgtype = getattr (modtype, msg)
         self.vals = getattr (msgtype, '__slots__')
+        self.msg = msgtype ()
         
         self.entries = {}
         table = gtk.Table (len (self.vals), 2)
         for ii,v in enumerate (self.vals):
-            # should fill with default type, else bring up other dialog for
-            # nested types
-            self.entries[v] = gtk.Entry ()
-            self.entries[v].set_editable (True)
             table.attach (gtk.Label (v), 0,1,ii,ii+1)
-            table.attach (self.entries[v], 1,2,ii,ii+1)
-        self.vbox.pack_start (table)
+            t = type (getattr (self.msg, v))
 
-        self.vbox.pack_start (gtk.HSeparator ())
+            if t==types.NoneType: 
+                continue # prompt user
+            elif t==types.ListType: 
+                continue # prompt user
+
+            e = gtk.Entry ()
+            e.set_editable (True)
+            if (v=='utime'): e.set_text (str (timestamp ()))
+            else: e.set_text (defaults[t.__name__])
+            table.attach (e, 1,2,ii,ii+1)
+            self.entries[v] = e
+        self.vbox.pack_start (table, expand=True, fill=True)
+
+        self.vbox.pack_start (gtk.HSeparator (), expand=True, fill=True)
         self.add_button ('Broadcast', 1)
         self.add_button ('Cancel', 0)
         self.vbox.show_all ()
 
     def publish (self):
-        print 'publish'
+        for v in self.vals:
+            t = type (getattr (self.msg, v))
+
+            if t==types.NoneType: 
+                continue # prompt user
+            elif t==types.ListType: 
+                setattr (self.msg, v, [])
+            else:
+                try:
+                    val = str_to_type (t, self.entries[v].get_text ())
+                    print v, val
+                    setattr (self.msg, v, val)
+                except Exception as e:
+                    print 'uh oh: %s' % e
+                    return
+
+        try:
+            self.lcm.publish ("CHANNEL", self.msg.encode ())
+            print '%d published %s' % (timestamp (), self.label)
+        except Exception as e:
+            print '%d error publishing %s: %s' % (timestamp (), self.label, e)
+
 
 class Command_window (object):
     """
@@ -98,7 +142,7 @@ class Command_window (object):
     def on_publish (self, widget):
         mod = modules[self.cbmodule.get_active ()]
         msg = messages[mod][self.cbmsg.get_active ()]
-        dlg = Msg_dialog (mod, msg)
+        dlg = Msg_dialog (self.lcm, mod, msg)
         while dlg.run ()!=0:
             dlg.publish ()
         dlg.destroy ()
@@ -108,6 +152,7 @@ class Command_window (object):
 
     def run (self):
         gtk.main ()
+
 
 if __name__ == '__main__':
     win = Command_window ()
