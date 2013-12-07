@@ -5,10 +5,10 @@ modules = [m for m in dir (lcmtypes) if not '__' in m]
 messages = {m:[t for t in dir (getattr (lcmtypes,m)) if not '__' in t] 
         for m in modules}
 
-defaults = {'int' : '0',
-            'float' : '0.0',
-            'boolean' : 'False',
-            'str' : ''}
+defaults = {types.IntType : '0',
+            types.FloatType : '0.0',
+            types.BooleanType : 'False',
+            types.StringType : ''}
 
 def str_to_type (t, val):
     """
@@ -33,7 +33,7 @@ def str_to_type (t, val):
     elif t==types.FloatType:
         return float (val)
     elif t==types.BooleanType:
-        if 't' in val.lower: return True
+        if 't' in val.lower (): return True
         else: return False
     elif t==types.StringType:
         return val

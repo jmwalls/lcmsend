@@ -19,6 +19,12 @@ class Msg_dialog (gtk.Dialog):
 
     Parameters
     -----------
+    lcm : reference to lcm object
+
+    msg : message instance
+    vals : user configurable message attributes (defined by __slots__)
+    entries : user specified vals
+    channel : channel to publish over
     """
     def __init__ (self, lc, module, msg):
         super (Msg_dialog, self).__init__ (msg)
@@ -31,23 +37,29 @@ class Msg_dialog (gtk.Dialog):
         self.vals = getattr (msgtype, '__slots__')
         self.msg = msgtype ()
         
-        self.entries = {}
-        table = gtk.Table (len (self.vals), 2)
+        self.entries, nentries = {}, len (self.vals)+1
+        table = gtk.Table (nentries, 3)
         for ii,v in enumerate (self.vals):
-            table.attach (gtk.Label (v), 0,1,ii,ii+1)
             t = type (getattr (self.msg, v))
+            table.attach (gtk.Label (v), 0,1,ii,ii+1)
+            table.attach (gtk.Label (t.__name__), 2,3,ii,ii+1)
 
             if t==types.NoneType: 
-                continue # prompt user
+                continue # should prompt user
             elif t==types.ListType: 
-                continue # prompt user
+                continue # should prompt user
 
             e = gtk.Entry ()
             e.set_editable (True)
             if (v=='utime'): e.set_text (str (timestamp ()))
-            else: e.set_text (defaults[t.__name__])
-            table.attach (e, 1,2,ii,ii+1)
+            else: e.set_text (defaults[t])
+            table.attach (e, 1, 2, ii, ii+1)
             self.entries[v] = e
+        self.channel = gtk.Entry ()
+        self.channel.set_editable (True)
+        self.channel.set_text ('_'.join ([msg.upper (),'CHANNEL']))
+        table.attach (gtk.Label ('channel'), 0, 1, nentries-1, nentries)
+        table.attach (self.channel, 1, 3, nentries-1, nentries)
         self.vbox.pack_start (table, expand=True, fill=True)
 
         self.vbox.pack_start (gtk.HSeparator (), expand=True, fill=True)
@@ -60,20 +72,20 @@ class Msg_dialog (gtk.Dialog):
             t = type (getattr (self.msg, v))
 
             if t==types.NoneType: 
-                continue # prompt user
-            elif t==types.ListType: 
-                setattr (self.msg, v, [])
+                continue # do something
+            elif t==types.ListType:
+                setattr (self.msg, v, []) # set empty for now
             else:
                 try:
                     val = str_to_type (t, self.entries[v].get_text ())
-                    print v, val
                     setattr (self.msg, v, val)
                 except Exception as e:
                     print 'uh oh: %s' % e
                     return
 
+        channel = self.channel.get_text ()
         try:
-            self.lcm.publish ("CHANNEL", self.msg.encode ())
+            self.lcm.publish (channel, self.msg.encode ())
             print '%d published %s' % (timestamp (), self.label)
         except Exception as e:
             print '%d error publishing %s: %s' % (timestamp (), self.label, e)
@@ -143,7 +155,7 @@ class Command_window (object):
         mod = modules[self.cbmodule.get_active ()]
         msg = messages[mod][self.cbmsg.get_active ()]
         dlg = Msg_dialog (self.lcm, mod, msg)
-        while dlg.run ()!=0:
+        while dlg.run ()==1:
             dlg.publish ()
         dlg.destroy ()
 
