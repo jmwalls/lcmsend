@@ -9,8 +9,9 @@ install structure. The user selects a type, which prompts a dialog box for the
 user to fill the necessary message fields. Finally, the user submits the
 message with a channel name to publish.
 
-Message type fields are specified by the `__slots__` attribute. Unfortunately,
-we cannot easily ascertain the type for both nested lcmtypes and lists.
+Message type fields are specified by the `__slots__` member variable.
+Unfortunately, we cannot easily ascertain the type for both nested lcmtypes
+and lists.
 
 * __lcmtypes:__ Nested lcmtypes are set to `NoneType`, so we can assume that
   `NoneType` attributes are, in fact, nested lcmtypes. For now, we'll prompt
@@ -28,6 +29,9 @@ we cannot easily ascertain the type for both nested lcmtypes and lists.
       we need to make sure lists that are intended to be byte arrays are set
       as strings.
 
+For more on Python class mechanics, including `__slots__`, see
+[Section 3.4.2.4 here](http://docs.python.org/2/reference/datamodel.html).
+
 A few ideas and extensions for moving forward:
 
 * Use manual completion method (as above), but also cache user-specified
@@ -40,8 +44,7 @@ A few ideas and extensions for moving forward:
 * Print enums/consts in dialog so that users can easily complete fields, or
   even better, somehow associate enums/consts with type and have drop-down
   menu.
-* Accept that the python lcmtypes were not designed for full introspection and
-  explore a java implementation.
+* Explore a java implementation.
 
 ###Run
 -----

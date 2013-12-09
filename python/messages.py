@@ -41,6 +41,44 @@ def str_to_type (t, val):
         raise ValueError ('Unsupported type %s' % t.__name__)
 
 
+class Message (object):
+    """
+    Lcm Message object---decomposes lcm messages into blanks (primitive
+    fields), lists (of type primitive or Lcm message), and nested Lcm
+    Messages.
+
+    Parameters
+    -----------
+    lcmobj : instance of lcmtype
+
+    vals : message attributes
+    types : type of each val
+
+    blanks : list of primitive attributes
+    lists : list of list attributes
+    nests : list of nested attributes
+    """
+    def __init__ (self, mod, msg):
+        modtype = getattr (lcmtypes, mod)
+        msgtype = getattr (modtype, msg)
+
+        self.vals = getattr (msgtype, '__slots__')
+        self.lcmobj = msgtype ()
+
+        self.types, self.blanks, self.lists, self.nests = {},[],[],[]
+        for v in self.vals:
+            t = type (getattr (self.lcmobj, v))
+            self.types[v] = t
+
+            if t==types.NoneType: self.nests.append (v)
+            elif t==types.ListType: self.lists.append (v)
+            else: self.blanks.append (v)
+
+    def set_value (self, attr, val):
+        pass
+
+
+
 if __name__ == '__main__':
     print 'messages module test---listing available lcm modules and messages'
 
