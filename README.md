@@ -38,13 +38,10 @@ A few ideas and extensions for moving forward:
   values, e.g., nested lcmtype types.
 * Parse the lcmdef directly (reluctant to do this---what if we only have the
   generated lcmtype).
-* Leverage some other introspection tools...
-* Play games with `encode` function; try to guess types until we don't raise
-  an exception.
+* Explore a java implementation.
 * Print enums/consts in dialog so that users can easily complete fields, or
   even better, somehow associate enums/consts with type and have drop-down
   menu.
-* Explore a java implementation.
 
 ###Run
 -----

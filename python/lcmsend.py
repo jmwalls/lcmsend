@@ -144,7 +144,6 @@ class Text_box (Entry_box):
     def get_value (self):
         strval = self.entry.get_text ()
         val = str_to_type (self.type, strval)
-        print self.val, val
         return val
 
 
@@ -183,7 +182,9 @@ class List_dialog (gtk.Dialog):
         if not self.length is None and len (self.l) >= self.length:
             print 'already added specified length'
             return
-        self.l.append (self.entry.get_value ())
+        val = self.entry.get_value ()
+        print 'added: ', val
+        self.l.append (val)
 
     def _on_clear (self, widget):
         self.l = []
@@ -193,6 +194,8 @@ class List_dialog (gtk.Dialog):
             l = [str_to_type (self.t, defaults[self.t]) for _ in range (self.length)]
             l[:len (self.l)] = self.l
             return l
+        if len (self.l) and type (self.l[0])==types.StringType:
+            return ''.join (self.l)
         return self.l
 
 
@@ -248,7 +251,6 @@ class List_box (Entry_box):
         dlg = List_dialog (self.module, self.val, self.type, self.length)
         if dlg.run ()==1:
             self.lvals = dlg.list ()
-            print self.lvals
         dlg.destroy ()
 
     def get_value (self):
@@ -285,6 +287,7 @@ class Nest_box (Entry_box):
             self.msg = dlg.message ()
         dlg.destroy ()
         self.set = True
+        print 'type set'
 
     def get_value (self):
         if not self.set: return
@@ -435,7 +438,7 @@ class Command_window (object):
             print '%d published' % (timestamp ())
         except Exception as e:
             print '%d error publishing message: %s' % (timestamp (), e)
-            raise
+            raise # not sure how to handle now
 
     def on_main_window_destroy (self, widget):
         gtk.main_quit ()
