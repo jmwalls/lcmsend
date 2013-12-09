@@ -73,9 +73,10 @@ class Message (object):
     nvals : number of vals
     types : type of each val
 
-    blanks : list of primitive attributes
-    lists : list of list attributes
-    nests : list of nested attributes
+    Notes
+    ------
+    We should hash this out better to take some weight off of the GUI
+    elements, e.g., store some of the smarts in determining types
     """
     def __init__ (self, mod, msg):
         self.modtype = getattr (lcmtypes, mod)
@@ -85,14 +86,7 @@ class Message (object):
         self.nvals = len (self.vals)
         self.lcmobj = self.msgtype ()
 
-        self.types, self.blanks, self.lists, self.nests = {},[],[],[]
-        for v in self.vals:
-            t = type (getattr (self.lcmobj, v))
-            self.types[v] = t
-
-            if t==types.NoneType: self.nests.append (v)
-            elif t==types.ListType: self.lists.append (v)
-            else: self.blanks.append (v)
+        self.types = {v:type (getattr (self.lcmobj, v)) for v in self.vals}
 
     def set_value (self, attr, val):
         setattr (self.lcmobj, attr, val)
@@ -123,11 +117,12 @@ class Entry_box (gtk.HBox):
 
 class Text_box (Entry_box):
     """
-    entry box for all primitive fields (int,float,bool,str)
+    entry box for all primitive fields (int,float,bool,str) (not None)
 
     Parameters
     -----------
     t : entry type
+    entry : text field
     """
     def __init__ (self, val, t):
         super (Text_box, self).__init__ (val)
@@ -159,6 +154,7 @@ class List_dialog (gtk.Dialog):
     """
     def __init__ (self, module, val, t, length=None):
         super (List_dialog, self).__init__ ('List')
+        if not length is None: print 'expecting %d entries' % length
         self.length, self.t = length, t
         self.l = []
         if t==types.NoneType: self.entry = Nest_box (module, val)
@@ -205,10 +201,18 @@ class List_box (Entry_box):
 
     Parameters
     -----------
-    setval : value that lcmobj is currently set to, if list already has a
-        length, then we assume that the type has a fixed length array. 
+    type : type held in list
+    lvals : list of values
     """
     def __init__ (self, module, val, setval):
+        """
+        constructor 
+
+        Parameters
+        -----------
+        setval : value that lcmobj is currently set to, if list already has a
+            length, then we assume that the type has a fixed length array. 
+        """
         super (List_box, self).__init__ (val)
         self.module = module
         self.type = types.NoneType
@@ -241,7 +245,7 @@ class List_box (Entry_box):
         self.ptypes = primitives[:]
         self.ptypes.append (types.NoneType)
         for m in self.ptypes:
-            self.cbmsg.append_text (m.__name__)
+            self.cbmsg.append_text (m.__name__ if m!= types.NoneType else 'Lcmtype')
         self.cbmsg.set_active (0)
         self.pack_start (self.cbmsg, expand=True, fill=True)
 
@@ -301,7 +305,6 @@ class Msg_dialog (gtk.Dialog):
     Parameters
     -----------
     msg : message instance
-    channel : channel to publish over (only if base message)
 
     Notes
     ------
@@ -309,6 +312,14 @@ class Msg_dialog (gtk.Dialog):
     handle nested types and lists with the same framework.
     """
     def __init__ (self, module, msgname):
+        """
+        constructor
+
+        Parameters
+        -----------
+        module : module name
+        msgname : message name
+        """
         super (Msg_dialog, self).__init__ (msgname)
         self.module = module
 
@@ -360,6 +371,12 @@ class Command_window (object):
     Parameters
     -----------
     window : underlying gtk window
+    vbox : holds everything in window
+
+    cbox : holds comboboxes for module and type
+
+    channel : holds channel text field
+
     lcm : lcm object
     """
     def __init__ (self):
@@ -367,7 +384,7 @@ class Command_window (object):
         self.window.set_title ('Lcmsend')
         self.window.set_default_size (400,200)
         self.window.set_position (gtk.WIN_POS_CENTER)
-        self.window.connect ('destroy', self.on_main_window_destroy)
+        self.window.connect ('destroy', self._on_main_window_destroy)
 
         self.vbox = gtk.VBox ()
         self.window.add (self.vbox)
@@ -440,7 +457,7 @@ class Command_window (object):
             print '%d error publishing message: %s' % (timestamp (), e)
             raise # not sure how to handle now
 
-    def on_main_window_destroy (self, widget):
+    def _on_main_window_destroy (self, widget):
         gtk.main_quit ()
 
     def run (self):
