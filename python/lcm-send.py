@@ -9,8 +9,8 @@ import gtk
 
 import lcm
 
-#from perls import lcmtypes
-import lcmtypes # we're using the local lcmtypes dir
+from perls import lcmtypes
+#import lcmtypes # we're using the local lcmtypes dir
 
 modules = [m for m in dir (lcmtypes) if not '__' in m]
 messages = {m:[t for t in dir (getattr (lcmtypes,m)) if not '__' in t] 
