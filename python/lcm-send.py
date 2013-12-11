@@ -8,7 +8,9 @@ pygtk.require ('2.0')
 import gtk
 
 import lcm
-from perls import lcmtypes
+
+#from perls import lcmtypes
+import lcmtypes # we're using the local lcmtypes dir
 
 modules = [m for m in dir (lcmtypes) if not '__' in m]
 messages = {m:[t for t in dir (getattr (lcmtypes,m)) if not '__' in t] 
@@ -56,6 +58,10 @@ def str_to_type (t, val):
         raise ValueError ('Unsupported type %s' % t.__name__)
 
 
+def timestamp ():
+    return int (time.time ()*1e6)
+
+
 class Message (object):
     """
     Lcm Message object---decomposes lcm messages into blanks (primitive
@@ -93,9 +99,6 @@ class Message (object):
 
     def value (self, attr):
         return getattr (self.lcmobj, attr)
-
-def timestamp ():
-    return int (time.time ()*1e6)
 
 
 class Entry_box (gtk.HBox):
